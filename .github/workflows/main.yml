@@ -12,23 +12,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up gcloud
+      - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
 
-      - name: Build & push Docker image
+      - name: Configure gcloud project
         run: |
-          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
-          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-devops-demo .
+          echo "Setting project to ${{ secrets.GCP_PROJECT_ID }}"
+          gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
+          gcloud config list
+
+      - name: Build and push Docker image
+        run: |
+          gcloud builds submit \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-devops-demo .
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
           gcloud run deploy flask-devops-demo \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-devops-demo \
-            --region us-central1 \
-            --platform managed \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-devops-demo \
+            --region=us-central1 \
+            --platform=managed \
             --allow-unauthenticated
